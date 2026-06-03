@@ -229,50 +229,23 @@ LOCAL_DARES = [
     "Share a link to a song that makes you feel like a main character."
 ]
 
-async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Processes button presses and edits the message in place safely using HTML."""
-    query = update.callback_query
-    await query.answer() 
-    
-    user = query.from_user
-    user_name = html.escape(user.first_name)
-    player_html = f'<a href="tg://user?id={user.id}">{user_name}</a>'
-    
-    try:
-        if query.data == "get_truth":
-            truth_text = generate_truth()
-            await query.edit_message_text(
-                text=f"❓ {player_html} <b>chose Truth:</b>\n\n<i>{html.escape(truth_text)}</i>\n\nSelect the next turn:",
-                reply_markup=get_game_keyboard(),
-                parse_mode="HTML"
-            )
-            
-        elif query.data == "get_dare":
-            dare_text = generate_dare()
-            await query.edit_message_text(
-                text=f"🎲 {player_html} <b>chose Dare:</b>\n\n<i>{html.escape(dare_text)}</i>\n\nSelect the next turn:",
-                reply_markup=get_game_keyboard(),
-                parse_mode="HTML"
-            )
-            
-        elif query.data == "get_menu":
-            await query.edit_message_text(
-                text="🎲 <b>AI Truth or Dare Game</b>\n\nSelect an option below to play:",
-                reply_markup=get_game_keyboard(),
-                parse_mode="HTML"
-            )
-            
-    except BadRequest as e:
-        if "Message is not modified" in str(e):
-            pass
-        else:
-            raise e
+# Shared welcome text block for start menu consistency
+MAIN_MENU_TEXT = (
+    "🔥 <b>Welcome to AI Truth or Dare!</b> 🔥\n\n"
+    "Ready to spice up the chat? You can play right here, "
+    "or bring the game into <i>any</i> conversation with your friends!\n\n"
+    "🎮 <b>How to play right now:</b>\n"
+    "Tap <b>Truth</b> or <b>Dare</b> below to get an instant, AI-generated prompt!\n\n"
+    "🚀 <b>How to play in other chats:</b>\n"
+    "Type <code>@truth_dare_ai_bot truth</code> or <code>@truth_dare_ai_bot dare</code> "
+    "in any chat box and watch the magic happen!"
+)
 
 def generate_ai_text(prompt, fallback_pool):
     url = "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-7B-Instruct"
     headers = {"Authorization": f"Bearer {HF_API_KEY}", "Content-Type": "application/json"}
     formatted_prompt = (
-        f"<|im_start|>system\nYou are a group party game assistant. Generate one completely unique, "
+        f"<|im_start|system\nYou are a group party game assistant. Generate one completely unique, "
         f"creative text item. Max 80 characters. It MUST be fully playable online via text or voice note. "
         f"Do NOT generate physical real-life actions. Output ONLY the response text itself, no quotes.\n<|im_end|>\n"
         f"<|im_start|>user\n{prompt} (Seed: {random.randint(1, 100000)})\n<|im_end|>\n"
@@ -303,14 +276,7 @@ def get_game_keyboard():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "🔥 <b>Welcome to AI Truth or Dare!</b> 🔥\n\n"
-        "Ready to spice up the chat? You can play right here, "
-        "or bring the game into <i>any</i> conversation with your friends!\n\n"
-        "🎮 <b>How to play right now:</b>\n"
-        "Tap <b>Truth</b> or <b>Dare</b> below to get an instant, AI-generated prompt!\n\n"
-        "🚀 <b>How to play in other chats:</b>\n"
-        "Type <code>@truth_dare_ai_bot truth</code> or <code>@truth_dare_ai_bot dare</code> "
-        "in any chat box and watch the magic happen!",
+        text=MAIN_MENU_TEXT,
         reply_markup=get_game_keyboard(),
         parse_mode="HTML"
     )
@@ -319,34 +285,48 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "ℹ️ <b>How to Play:</b>\n\n"
         "1. <b>In this Chat:</b> Use /start and click the interactive menu buttons.\n"
-        "2. <b>In Friends' DMs (Inline Mode):</b> Type <code>@YourBotName truth</code> or <code>@YourBotName dare</code> in any chat window, wait 1 second, and tap the pop-up to send a prompt!",
+        "2. <b>In Friends' DMs (Inline Mode):</b> Type <code>@truth_dare_ai_bot truth</code> or <code>@truth_dare_ai_bot dare</code> in any chat window, wait 1 second, and tap the pop-up to send a prompt!",
         parse_mode="HTML"
     )
 
 async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Processes button presses and edits the message in place safely using HTML."""
     query = update.callback_query
-    await query.answer()
+    await query.answer() 
+    
     user = query.from_user
     user_name = html.escape(user.first_name)
     player_html = f'<a href="tg://user?id={user.id}">{user_name}</a>'
     
-    if query.data == "get_truth":
-        truth_text = generate_truth()
-        await query.edit_message_text(
-            text=f"❓ {player_html} <b>chose Truth:</b>\n\n<i>{html.escape(truth_text)}</i>\n\nSelect the next turn:",
-            reply_markup=get_game_keyboard(), parse_mode="HTML"
-        )
-    elif query.data == "get_dare":
-        dare_text = generate_dare()
-        await query.edit_message_text(
-            text=f"🎲 {player_html} <b>chose Dare:</b>\n\n<i>{html.escape(dare_text)}</i>\n\nSelect the next turn:",
-            reply_markup=get_game_keyboard(), parse_mode="HTML"
-        )
-    elif query.data == "get_menu":
-        await query.edit_message_text(
-            text="🎲 <b>AI Truth or Dare Game</b>\n\nSelect an option below to play:",
-            reply_markup=get_game_keyboard(), parse_mode="HTML"
-        )
+    try:
+        if query.data == "get_truth":
+            truth_text = generate_truth()
+            await query.edit_message_text(
+                text=f"❓ {player_html} <b>chose Truth:</b>\n\n<i>{html.escape(truth_text)}</i>\n\nSelect the next turn:",
+                reply_markup=get_game_keyboard(),
+                parse_mode="HTML"
+            )
+            
+        elif query.data == "get_dare":
+            dare_text = generate_dare()
+            await query.edit_message_text(
+                text=f"🎲 {player_html} <b>chose Dare:</b>\n\n<i>{html.escape(dare_text)}</i>\n\nSelect the next turn:",
+                reply_markup=get_game_keyboard(),
+                parse_mode="HTML"
+            )
+            
+        elif query.data == "get_menu":
+            await query.edit_message_text(
+                text=MAIN_MENU_TEXT,
+                reply_markup=get_game_keyboard(),
+                parse_mode="HTML"
+            )
+            
+    except BadRequest as e:
+        if "Message is not modified" in str(e):
+            pass
+        else:
+            raise e
 
 async def handle_inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Processes search queries typed into the message box across any chat."""
